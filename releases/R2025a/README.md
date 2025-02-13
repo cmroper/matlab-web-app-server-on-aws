@@ -148,6 +148,47 @@ To run applications on MATLAB Web App Server, you need to create web apps using 
 1. In the *Connect to instance* dialog, click  the **SSH client** tab.
 1. Follow the instructions on the page to SSH to the EC2 instance.
 
+## Configure Authentication
+Authentication lets you validate user credentials and helps you control which users can access web apps deployed on the server. MATLAB Web App Server supports authentication using Lightweight Directory Access Protocol (LDAP) and OpenID Connect (OIDC). You can set up authentication using the browser-based Admin Portal or by connecting directly to the EC2 instance hosting MATLAB Web App Server.
+
+### Admin Portal
+The MATLAB Web App Server Admin Portal lets you manage the MATLAB Web App Server from your browser. You can access the Admin Portal by clicking the three dots next to the deployment and selecting "MATLAB Web App Server Admin Console" or "MATLAB Web App Server Admin Console (direct)". The Admin Portal is also available in the deployment details under "Outputs".
+
+To set up authentication using the Admin Portal:
+
+1. In the "Configure" tab, select an identity provider as the authentication method. If you are using LDAP, select "Other".
+2. Fill in your authentication details. For more information, see the [Authentication](https://www.mathworks.com/help/webappserver/ug/authentication.html) page in the MathWorks documentation.
+
+    | Parameter Name           | Value                                                                                                                                                                                               |
+    |--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | Client Issuer    | Specify the OIDC IdP issuer URI. Obtain the URI from the OIDC provider administrator. For example, if using Google Identity Platform: `https://accounts.google.com/.well-known/openid-configuration`.  |
+    | Client ID        | Specify the client ID you obtained while registering your credentials with an IdP. For example, if using Google Identity Platform: `1234567890-xxxxxxxxxxxx.apps.googleusercontent.com`. |
+    | Client Secret            | Specify the client ID you obtained while registering your credentials with an IdP. For example, if using Google Identity Platform: `1234567890-xxxxxxxxxxxx.apps.googleusercontent.com`. |
+    | Scope                    | Specify the identifiers for resources that an administrator wants MATLAB Web App Server to access. For example, if using Google Identity Platform: `openid profile email`. |
+    | User Attribute Name      | Specify an attribute name to identify user objects. For example: `uid`. You must set a value for this property if you use policy-based access. Otherwise, do not specify this property. If you are not using policy-based access but decide to specify this property, set the value to "". For more information, see [Policy-Based Access](https://www.mathworks.com/help/webappserver/ug/policy-based-access.html). |
+    | Group Attribute Name     | Specify an attribute name to identify group objects. For example: member. You must set a value for this property if you use policy-based access. Otherwise, do not include this property in your JSON file. If you are not using policy-based access but decide to include this property in your JSON file, set the value to "". For more information, see [Policy-Based Access](https://www.mathworks.com/help/webappserver/ug/policy-based-access.html). |
+    | Redirect URI             | Specify the redirect URL you used while configuring OIDC authentication with the IdP. A redirect URI, or reply URL, is the location where the authentication server sends the user once they have successfully authorized and been granted an access token. The format of the URL is: `https://<MATLABWebAppServer_hostname>:<port_server_is_running_on>/webapps/extauth/callback`. For example, if MATLAB Web App Server is running on port 9988, then the redirect URL is: `https://example.com:9988/webapps/extauth/callback`.|
+    | Display Name             | Configure how the user's identity is displayed on the MATLAB Web App Server Admin Portal by specifying an attribute name of an authenticated user object. The default is the `sub` attribute. |
+    | Token Expiration Minimum *(Optional)* | Specify the token expiration duration in minutes. For example: 60. The default value is "", which means the tokens do not expire. |
+    | Re-Authentication Prompt *(Optional)* | Specify whether to re-authenticate a user who is already logged-in to an identity provider (IdP). If the user is not logged-in, then a user must re-authenticate by logging-in.<ul><li>If enabled, then a user must re-authenticate even if logged-in to an IdP. This is the default option.</li><li>If disabled, and a user is logged-in to an IdP, then the IdP login screen is not displayed.</li></ul> |
+
+3. Click "Generate Authentication File" to create the file `webapps_authn.json` that contains your settings.
+4. Navigate to the "Authorize" tab and define users or groups that can have access to the Admin Portal.
+5. Click "Generate Authorization File" to create the file `authz.json` that contains your settings.
+6. Navigate to the "Upload" tab and follow the instructions to upload the generated JSON files to the Azure File Share.
+
+### Direct Upload
+1. Connect to the EC2 instance hosting MATLAB Web App Server. For details, see:
+    * [Connect to EC2 Instance Hosting MATLAB Web App Server Using Remote Desktop](#connect-to-ec2-instance-hosting-matlab-web-app-server-using-remote-desktop)
+    * [Connect to EC2 Instance Hosting MATLAB Web App Server Using SSH](#connect-to-ec2-instance-hosting-matlab-web-app-server-using-ssh).
+1. To create and upload the JSON files, follow the instructions on the [Authentication](https://www.mathworks.com/help/webappserver/ug/authentication.html) page in the MathWorks documentation.
+    >**NOTE:** SSL is enabled when you deploy the stack.   
+1. For the `redirectUrl`, use the URL created as part of your stack.
+    * In the AWS management console, select the stack you deployed. 
+    * In the *Stack details* for your stack, click the **Outputs** tab.
+    * Look for the key named `MATLABWebAppServerOIDCRedirectUrl` and copy the corresponding URL listed under value.
+    * Use this URL in the `webapps_authn.json` file.
+
 ## Find Setup and Configuration Files
 | Task                  | Relevant Files                                            | Details                            |
 |-----------------------|-----------------------------------------------------------|------------------------------------|
@@ -155,18 +196,6 @@ To run applications on MATLAB Web App Server, you need to create web apps using 
 | Authentication        | `webapps_authn.json`                                        | [Authentication Documentation](https://www.mathworks.com/help/webappserver/ug/authentication.html)       |
 | Role-Based Access     | `webapps_app_roles.json`                                    | [Role-Based Access Documentation](https://www.mathworks.com/help/webappserver/ug/role-based-access.html)    |
 | Policy-Based Access   | `webapps_acc_ctl.json`                                      | [Policy-Based Access Documentation](https://www.mathworks.com/help/webappserver/ug/policy-based-access.html)  |
-
-## Configure OIDC Authentication
-1. Connect to the EC2 instance hosting MATLAB Web App Server. For details, see:
-    * [Connect to EC2 Instance Hosting MATLAB Web App Server Using Remote Desktop](#connect-to-ec2-instance-hosting-matlab-web-app-server-using-remote-desktop)
-    * [Connect to EC2 Instance Hosting MATLAB Web App Server Using SSH](#connect-to-ec2-instance-hosting-matlab-web-app-server-using-ssh).
-1. Follow the instructions on the [Authentication](https://www.mathworks.com/help/webappserver/ug/authentication.html) page in the MathWorks documentation.
-    >**NOTE:** SSL is enabled when you deploy the stack.   
-1. For the `redirectUrl`, use the URL created as part of your stack.
-    * In the AWS management console, select the stack you deployed. 
-    * In the *Stack details* for your stack, click the **Outputs** tab.
-    * Look for the key named `MATLABWebAppServerOIDCRedirectUrl` and copy the corresponding URL listed under value.
-    * Use this URL in the `webapps_authn.json` file.
 
 ## View Logs
 Logs are available in AWS CloudWatch. 
